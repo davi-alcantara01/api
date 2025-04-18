@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+
+  <hr>
+  <h4>Lista de games</h4>
+  <hr>
+  <ul id="games">
+
+  </ul>
+  <hr>
+  <h4>Novo Game</h4>
+  <label for="title">Titulo: </label><input type="text" name="title" id="title"><br><br>
+  <label for="genre">Genero: </label><input type="text" name="genre" id="genre"><br><br>
+  <label for="price">Preço: </label><input type="number" name="price" id="price"><br><br>
+  <button onclick="createGame()" type="button">Cadastrar</button>
+  <hr>
+  <h4>Editar game</h4>
+  <br>
+  <label for="title">Titulo: </label><input type="text" name="title" id="titleEdit"><br><br>
+  <label for="genre">Genero: </label><input type="text" name="genre" id="genreEdit"><br><br>
+  <label for="price">Preço: </label><input type="number" name="price" id="priceEdit"><br><br>
+  <button onclick="editGame()" id="edit" type="button">Editar</button>
+
+</body>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+
+  function createGame() {
+    let titleInput = document.getElementById("title")
+    let genreInput = document.getElementById("genre")
+    let priceInput = document.getElementById("price")
+
+    let game = {
+      title: titleInput.value,
+      genre: genreInput.value,
+      price: priceInput.value
+    }
+    axios.post("http://localhost:3000/game", game)
+      .then(response => {
+        alert("Game cadastrado!")
+      }).catch(err => {
+        alert("Game não cadastrado.");
+        console.error(err);
+      })
+
+    console.log(game);
+
+  }
+
+  function destroy(id) {
+    axios.delete(`http://localhost:3000/game/${id}`)
+      .then(() => {
+        alert("Game deletado")
+      }).catch(err => {
+        alert("Erro ao deletar o game");
+        console.error(err);
+      })
+  }
+
+  function edit(game) {
+    let titleEdit = document.getElementById("titleEdit");
+    let genreEdit = document.getElementById("genreEdit");
+    let priceEdit = document.getElementById("priceEdit");
+
+    titleEdit.value = game.title;
+    genreEdit.value = game.genre;
+    priceEdit.value = game.price;
+
+  }
+
+  function editGame(id) {
+    let titleEdit = document.getElementById("titleEdit");
+    let genreEdit = document.getElementById("genreEdit");
+    let priceEdit = document.getElementById("priceEdit");
+    let button = document.getElementById("edit");
+    id = button.getAttribute("data-id")
+
+    let gameEdited = {
+      title: titleEdit.value,
+      genre: genreEdit.value,
+      price: priceEdit.value
+    };
+
+    if(gameEdited.price == '') {
+      gameEdited.price = undefined;
+    }
+    if(gameEdited.title == '') {
+      gameEdited.title = undefined;
+    }
+    if(gameEdited.genre == '') {
+      gameEdited.genre = undefined;
+    }
+    console.log(gameEdited)
+
+    axios.put("http://localhost:3000/game/" + id, gameEdited)
+      .then(() => {
+        alert("Game editado.")
+      }).catch(err => {
+        alert("Erro ao editar");
+        console.error(err)
+      })
+  }
+
+  axios.get("http://localhost:3000/games")
+    .then(response => {
+      let games = response.data;
+
+      let lista = document.getElementById("games");
+
+      games.forEach(game => {
+        let item = document.createElement("li");
+        let br = document.createElement("br");
+        let deleteItem = document.createElement("button");
+        let editItem = document.createElement("button");
+        let buttonEdit = document.getElementById("edit");
+
+
+        editItem.innerText = "Editar";
+        editItem.addEventListener("click", () => {
+          edit(game);
+          buttonEdit.setAttribute("data-id", game.id)
+        })
+
+        deleteItem.innerText = "Deletar";
+        deleteItem.addEventListener("click", () => {
+          destroy(game.id)
+        })
+
+        item.innerText = `Id: ${game.id}, Titulo: ${game.title}, Genero: ${game.genre}, Preço ${game.price};`;
+        item.setAttribute("data-id", game.id)
+
+        lista.appendChild(item)
+        lista.appendChild(editItem)
+        lista.appendChild(deleteItem)
+        lista.appendChild(br)
+      });
+
+    }).catch(err => {
+      console.log(err);
+    })
+
+
+
+</script>
+
+</html>
