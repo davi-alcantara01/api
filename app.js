@@ -3,8 +3,13 @@ const connection = module.require("./database/Conection.js");
 const sequelize = require("sequelize");
 const Games = module.require("./games/Games.js");
 const cors = require("cors");
+const User = module.require("./users/User.js");
+const jwt = require("jsonwebtoken");
+const auth = require("./middleware/auth.js")
 
 const app = express();
+
+const secretKey = "misly";
 
 
 app.use(cors());
@@ -20,14 +25,14 @@ connection
     console.log("Erro ao se conectar com o banco de dados: " + err);
   });
 
-app.get("/games", (req, res) => {
+app.get("/games", auth, (req, res) => {
   res.statusCode = 200;
   Games.findAll().then((games) => {
     res.json(games);
   });
 });
 
-app.get("/game/:id", (req, res) => {
+app.get("/game/:id", auth, (req, res) => {
   let gameId = req.params.id;
 
   if (isNaN(gameId)) {
@@ -45,7 +50,7 @@ app.get("/game/:id", (req, res) => {
   }
 });
 
-app.post("/game", (req, res) => {
+app.post("/game", auth, (req, res) => {
   let { title, genre, price } = req.body;
   if (title == undefined || genre == undefined || isNaN(price)) {
     res.sendStatus(400);
@@ -59,7 +64,7 @@ app.post("/game", (req, res) => {
   }
 });
 
-app.delete("/game/:id", (req, res) => {
+app.delete("/game/:id", auth, (req, res) => {
   let gameId = req.params.id;
 
   if (isNaN(gameId)) {
@@ -77,7 +82,7 @@ app.delete("/game/:id", (req, res) => {
   }
 });
 
-app.put("/game/:id", (req, res) => {
+app.put("/game/:id", auth, (req, res) => {
   let gameId = req.params.id;
 
   if (isNaN(gameId)) {
@@ -119,6 +124,41 @@ app.put("/game/:id", (req, res) => {
         
       });
     });
+  }
+});
+
+app.post("/auth", (req, res) => {
+  let { email, senha } = req.body;
+
+  if (email != undefined) {
+    User.findOne({ where: { email: email } }).then((user) => {
+      if (user != undefined) {
+        if (user.senha == senha) {
+          jwt.sign(
+            { id: user.id, email: user.email },
+            secretKey,
+            { expiresIn: "48h" },
+            (err, token) => {
+              if (err) {
+                res.status(400);
+                res.json({ error: "Falha interna" });
+              } else {
+                res.status = 200;
+                res.json({ user: user, token: token });
+              }
+            }
+          );
+        } else {
+          res.status(401).json({ error: "credenciais inválidas" });
+        }
+      } else {
+        res.status(400);
+        res.json({ error: "Email não encontrado na base de dados" });
+      }
+    });
+  } else {
+    res.status(400);
+    res.json({ error: "Email inválido" });
   }
 });
 
