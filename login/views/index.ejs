@@ -129,7 +129,7 @@
 
   axios.get("http://localhost:3000/games", axiosConfig)
     .then(response => {
-      let games = response.data;
+      let games = response.data.games;
 
       let lista = document.getElementById("games");
 

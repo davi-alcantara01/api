@@ -25,15 +25,60 @@ connection
     console.log("Erro ao se conectar com o banco de dados: " + err);
   });
 
+function hateoas(id) {
+  let HATEOAS = [
+    {
+      listGames: {
+        href: `http://localhost:3000/games`,
+        method: "get",
+        rel: "get_games"
+      },
+      infoGame: {
+        href: `http://localhost:3000/game/${id}`,
+        method: "get",
+        rel: "get_game"
+      },
+      deleteGame: {
+        href: `http://localhost:3000/game/${id}`,
+        method: "delete",
+        rel: "delete_game"
+      },
+      editGame: {
+        href: `http://localhost:3000/game/${id}`,
+        method: "put",
+        rel: "put_game"
+      },
+      createGame: {
+        href: `http://localhost:3000/game/${id}`,
+        method: "post",
+        rel: "post_game"
+      },
+      login: {
+        href: `http://localhost:3000/auth`,
+        method: "post",
+        rel: "login"
+      }
+    }
+  ]
+  return HATEOAS
+}
+
 app.get("/games", auth, (req, res) => {
+
+  
+  let HATEOAS = hateoas(0);
+
   res.statusCode = 200;
   Games.findAll().then((games) => {
-    res.json(games);
+    res.json({games: games, _links: HATEOAS});
   });
 });
 
 app.get("/game/:id", auth, (req, res) => {
   let gameId = req.params.id;
+
+  let HATEOAS = hateoas(gameId);
+
 
   if (isNaN(gameId)) {
     res.sendStatus(400);
@@ -42,7 +87,7 @@ app.get("/game/:id", auth, (req, res) => {
 
     Games.findByPk(gameId).then((game) => {
       if (game != undefined) {
-        res.json(game);
+        res.json({game: game, _links: HATEOAS});
       } else {
         res.sendStatus(400);
       }
@@ -59,8 +104,11 @@ app.post("/game", auth, (req, res) => {
       title: title,
       genre: genre,
       price: price,
-    });
-    res.sendStatus(200);
+    }).then(() => {
+      res.sendStatus(200)
+    }).catch(() => {
+      res.sendStatus(500);
+    })
   }
 });
 
@@ -74,7 +122,11 @@ app.delete("/game/:id", auth, (req, res) => {
 
     Games.findByPk(gameId).then((game) => {
       if (game != undefined) {
-        Games.destroy({ where: { id: gameId } }).then(res.sendStatus(200));
+        Games.destroy({ where: { id: gameId } }).then(() => {
+          res.sendStatus(200)
+        }).catch(() => {
+          res.sendStatus(500);
+        });
       } else {
         res.sendStatus(404);
       }
@@ -130,7 +182,7 @@ app.put("/game/:id", auth, (req, res) => {
 app.post("/auth", (req, res) => {
   let { email, senha } = req.body;
 
-  if (email != undefined) {
+  if (email && senha) {
     User.findOne({ where: { email: email } }).then((user) => {
       if (user != undefined) {
         if (user.senha == senha) {
@@ -143,8 +195,11 @@ app.post("/auth", (req, res) => {
                 res.status(400);
                 res.json({ error: "Falha interna" });
               } else {
-                res.status = 200;
-                res.json({ user: user, token: token });
+                res.status(200);
+                res.json({ user: {
+                  id: user.id,
+                  email: user.email
+                }, token: token });
               }
             }
           );
